@@ -4,9 +4,10 @@
 # Freely distributable under the MIT license.
 #
 # Easy async working with huge amount of data
+# requires underscore.js (or lo-Dash as well)
 
 
-define [], ->
+define ["underscore"], (_) ->
   BatchBalancer = (limit) ->
     @_start_time = +new Date()
     @_limit = limit or 50
@@ -20,12 +21,24 @@ define [], ->
       else
         callback()
 
-  async_iterate = (iterator, complete) ->
+  async_iterate = (iterator, batch_balancer, complete) ->
     keys = undefined
-    balancer = null
+    balancer = batch_balancer or new BatchBalancer()
     state = is_complete: false
     complete_handlers = []
     complete_handlers.push complete  if _.isFunction(complete)
+
+    flow_control = 
+      wait: () ->
+        state.is_wait = true
+
+      next:  () ->
+        state.is_wait = false
+        balancer?.start iteration
+
+      stop:  () ->
+        state.is_complete = true
+
     call_complete_handlers = ->
       if 0 < complete_handlers.length
         handler = complete_handlers.shift()
@@ -37,9 +50,10 @@ define [], ->
       call_complete_handlers()
 
     iteration = if _.isFunction iterator then ->
+      return false if state.is_wait
       if keys.length isnt 0 and not state.is_complete
         next_index = keys.shift()
-        result = iterator state.data[next_index], next_index
+        result = iterator state.data[next_index], next_index, flow_control
         if result isnt undefined
           state.result = (if _.isArray state.data then [] else {}) unless state.result
           state.result[next_index] = result
@@ -47,20 +61,22 @@ define [], ->
         state.is_complete = true
         iteration_complete()
         return state
+
       balancer.start iteration
-     else ->
+
+    else ->
       state.is_complete = true
       state.result = state.data
       iteration_complete()
       state
 
-    iteration_initializer = (data, batch_balancer) ->
-      balancer = batch_balancer or new BatchBalancer()
+    iteration_initializer = (data) ->
       state.data = data
       keys = (if _.isArray(data) or _.isObject(data) then _.keys(state.data) else [])
       balancer.start iteration
 
     iteration_initializer.iterator = iterator
+
     iteration_initializer.complete = (handler) ->
       complete_handlers.push handler
       iteration_complete() if state.is_complete
@@ -79,15 +95,17 @@ define [], ->
 
   Worker:: =
     _push: (data) ->
-      new_iteration = async_iterate(data.iterator, data.complete)
+      new_iteration = async_iterate(data.iterator, @_balancer, data.complete)
       @_last_iteration.complete (state) =>
-        new_iteration state.result, @_balancer
+        new_iteration state.result
 
       @_last_iteration = new_iteration
       @
+
     stop: ->
       @_last_iteration.stop()
       @
+
     after: (handler) ->
       @_push complete: (state) ->
         data = handler(state.result)
@@ -99,9 +117,8 @@ define [], ->
       @
 
     each: (iterator) ->
-      @_push iterator: (value, index) ->
-        data = iterator(value, index)
-        @stop()  if data is false
+      @_push iterator: (value, index, flow) ->
+        @stop() if iterator(value, index, flow) is false
       @
 
 
@@ -111,8 +128,8 @@ define [], ->
     reduce: (iterator) ->
       summary = undefined
       @_push
-        iterator: (value, index) ->
-          summary = iterator(value, index, summary)
+        iterator: (value, index, flow) ->
+          summary = iterator(value, index, summary, flow)
 
         complete: (state) ->
           state.result = summary
@@ -122,8 +139,8 @@ define [], ->
     find: (iterator) ->
       found = undefined
       @_push
-        iterator: (value, index) ->
-          found = value  if iterator(value, index)
+        iterator: (value, index, flow) ->
+          found = value  if iterator(value, index, flow)
 
         complete: (state) ->
           state.result = found
