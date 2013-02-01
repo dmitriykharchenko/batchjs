@@ -4,7 +4,6 @@
 # Freely distributable under the MIT license.
 #
 # Easy async working with huge amount of data
-# requires underscore.js (or lo-Dash as well)
 
 
 define ["underscore"], (_) ->
@@ -21,39 +20,32 @@ define ["underscore"], (_) ->
       else
         callback()
 
+  helpers = 
+    call_complete_handlers: (handlers, state, balancer) ->
+      if 0 < handlers.length
+        handler = handlers.shift()
+        handler state
+        balancer.start ->
+          helpers.call_complete_handlers handlers, state, balancer
+
+
   async_iterate = (iterator, batch_balancer, complete) ->
     keys = undefined
+    iteration_initializer = null
     balancer = batch_balancer or new BatchBalancer()
     state = is_complete: false
     complete_handlers = []
     complete_handlers.push complete  if _.isFunction(complete)
 
-    flow_control = 
-      wait: () ->
-        state.is_wait = true
-
-      next:  () ->
-        state.is_wait = false
-        balancer?.start iteration
-
-      stop:  () ->
-        state.is_complete = true
-
-    call_complete_handlers = ->
-      if 0 < complete_handlers.length
-        handler = complete_handlers.shift()
-        handler state
-        balancer.start call_complete_handlers
-
     iteration_complete = ->
       state.result = state.data unless state.result
-      call_complete_handlers()
+      helpers.call_complete_handlers complete_handlers, state, balancer
 
     iteration = if _.isFunction iterator then ->
       return false if state.is_wait
       if keys.length isnt 0 and not state.is_complete
         next_index = keys.shift()
-        result = iterator state.data[next_index], next_index, flow_control
+        result = iterator state.data[next_index], next_index, iteration_initializer
         if result isnt undefined
           state.result = (if _.isArray state.data then [] else {}) unless state.result
           state.result[next_index] = result
@@ -84,6 +76,13 @@ define ["underscore"], (_) ->
     iteration_initializer.stop = ->
       state.is_complete = true
 
+    iteration_initializer.pause = () ->
+      state.is_wait = true
+
+    iteration_initializer.resume = () ->
+      state.is_wait = false
+      balancer?.start iteration
+
     iteration_initializer.state = state
     iteration_initializer
 
@@ -96,11 +95,14 @@ define ["underscore"], (_) ->
   Worker:: =
     _push: (data) ->
       new_iteration = async_iterate(data.iterator, @_balancer, data.complete)
-      @_last_iteration.complete (state) =>
+      @_last_iteration.complete (state) ->
         new_iteration state.result
 
       @_last_iteration = new_iteration
       @
+
+    pause: () ->
+      @_last_iteration.pause
 
     stop: ->
       @_last_iteration.stop()
@@ -111,7 +113,7 @@ define ["underscore"], (_) ->
         data = handler(state.result)
         state.result = (if not _.isUndefined(data) then data else state.data)
 
-    pick: (data) ->
+    use: (data) ->
       @_push complete: (state) ->
         state.result = data
       @
