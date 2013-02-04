@@ -101,17 +101,9 @@ define ["underscore"], (_) ->
       @_last_iteration = new_iteration
       @
 
-    pause: () ->
-      @_last_iteration.pause
-
     stop: ->
       @_last_iteration.stop()
       @
-
-    after: (handler) ->
-      @_push complete: (state) ->
-        data = handler(state.result)
-        state.result = (if not _.isUndefined(data) then data else state.data)
 
     use: (data) ->
       @_push complete: (state) ->
@@ -149,9 +141,10 @@ define ["underscore"], (_) ->
       @
 
 
-    complete: (handler) ->
+    next: (handler) ->
       @_push complete: (state) ->
-        handler state.result
+        data = handler(state.result)
+        state.result = (if not _.isUndefined(data) then data else state.data)
       @
 
 
