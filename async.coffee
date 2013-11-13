@@ -1,4 +1,4 @@
-# requirejs-async v 0.0.1
+# batch.js v 0.0.1
 # (c) 2012 Dmitriy Kharchenko
 # https://github.com/aki-russia/requirejs-async
 # Freely distributable under the MIT license.
@@ -6,13 +6,13 @@
 # Easy async working with huge amount of data
 
 
-define [], () ->
-  
+window.batch = new () ->
+
   #
   # Utitity helpers, got from underscore.js
   #
   is_function = (func) ->
-    typeof func === 'function'
+    typeof func is 'function'
 
   is_array = Array.isArray or (obj) ->
     toString.call(obj) is '[object Array]'
@@ -21,7 +21,7 @@ define [], () ->
     obj is Object obj
 
   get_keys = Object.keys or (obj) ->
-    if isnt is_object obj
+    if not is_object obj
       throw new TypeError 'Invalid object'
 
     keys = [];
