@@ -6,7 +6,32 @@
 # Easy async working with huge amount of data
 
 
-define ["underscore"], (_) ->
+define [], () ->
+  
+  #
+  # Utitity helpers, got from underscore.js
+  #
+  is_function = (func) ->
+    typeof func === 'function'
+
+  is_array = Array.isArray or (obj) ->
+    toString.call(obj) is '[object Array]'
+
+  is_object = (obj) ->
+    obj is Object obj
+
+  get_keys = Object.keys or (obj) ->
+    if isnt is_object obj
+      throw new TypeError 'Invalid object'
+
+    keys = [];
+    for key in obj 
+      if obj.hasOwnProperty key
+        keys[keys.length] = key
+
+    keys
+
+
   BatchBalancer = (limit) ->
     @_start_time = +new Date()
     @_limit = limit or 50
@@ -16,7 +41,7 @@ define ["underscore"], (_) ->
       call_date = +new Date()
       if @_limit < (call_date - @_start_time)
         @_start_time = call_date
-        _.delay callback
+        setTimeout callback, 0
       else
         callback()
 
@@ -35,19 +60,19 @@ define ["underscore"], (_) ->
     balancer = batch_balancer or new BatchBalancer()
     state = is_complete: false
     complete_handlers = []
-    complete_handlers.push complete  if _.isFunction(complete)
+    complete_handlers.push complete if is_function(complete)
 
     iteration_complete = ->
       state.result = state.data unless state.result
       helpers.call_complete_handlers complete_handlers, state, balancer
 
-    iteration = if _.isFunction iterator then ->
+    iteration = if is_function iterator then ->
       return false if state.is_wait
       if keys.length isnt 0 and not state.is_complete
         next_index = keys.shift()
         result = iterator state.data[next_index], next_index, iteration_initializer
         if result isnt undefined
-          state.result = (if _.isArray state.data then [] else {}) unless state.result
+          state.result = (if is_array state.data then [] else {}) unless state.result
           state.result[next_index] = result
       else
         state.is_complete = true
@@ -64,7 +89,7 @@ define ["underscore"], (_) ->
 
     iteration_initializer = (data) ->
       state.data = data
-      keys = (if _.isArray(data) or _.isObject(data) then _.keys(state.data) else [])
+      keys = (if is_array(data) or is_object(data) then get_keys(state.data) else [])
       balancer.start iteration
 
     iteration_initializer.iterator = iterator
@@ -144,7 +169,7 @@ define ["underscore"], (_) ->
     next: (handler) ->
       @_push complete: (state) ->
         data = handler(state.result)
-        state.result = (if not _.isUndefined(data) then data else state.data)
+        state.result = if data isnt undefined then data else state.data
       @
 
 
