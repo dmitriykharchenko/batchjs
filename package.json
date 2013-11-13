@@ -1,0 +1,21 @@
+{
+  "name": "batch.js",
+  "version": "0.0.1",
+  "author": "Dmitriy Kharchenko <akimoto@yandex.ru>",
+  "description": "Easy async working with huge amount of data",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aki-russia/batchjs.git"
+  },
+  "dependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-concat": "0.3.0",
+    "grunt-contrib-watch": "*",
+    "grunt-contrib-clean": "0.5.0",
+    "grunt-contrib-copy": "*",
+    "grunt-contrib-uglify": "*",
+    "grunt-contrib-coffee": "*",
+    "grunt-contrib-jshint": "latest"
+  },
+  "license": "MIT"
+}
