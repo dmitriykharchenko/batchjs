@@ -1,4 +1,4 @@
-(global || window).batch = new function() {
+window.batch = new function() {
   var BatchBalancer, Worker, async_iterate, get_keys, helpers, is_array, is_function, is_object;
   is_function = function(func) {
     return typeof func === 'function';
@@ -24,6 +24,8 @@
     return keys;
   };
   BatchBalancer = function(limit) {
+    this.stack_depth = 0;
+    this._stack_limit = 5000;
     this._start_time = +new Date();
     return this._limit = limit || 50;
   };
@@ -31,10 +33,11 @@
     start: function(callback) {
       var call_date;
       call_date = +new Date();
-      if (this._limit < (call_date - this._start_time)) {
+      if (this._limit < (call_date - this._start_time) || this._stack_limit <= this.stack_depth) {
         this._start_time = call_date;
         return setTimeout(callback, 0);
       } else {
+        this.stack_depth++;
         return callback();
       }
     }

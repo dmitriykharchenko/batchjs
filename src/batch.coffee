@@ -6,7 +6,7 @@
 # Easy async working with huge amount of data
 
 
-(global or window).batch = new () ->
+window.batch = new () ->
 
   #
   # Utitity helpers, got from underscore.js
@@ -32,17 +32,20 @@
     keys
 
 
-  BatchBalancer = (limit) ->
+  BatchBalancer = (limit, stack_limit) ->
+    @stack_depth = 0;
+    @_stack_limit = stack_limit or 5000;
     @_start_time = +new Date()
     @_limit = limit or 50
 
   BatchBalancer:: =
     start: (callback) ->
       call_date = +new Date()
-      if @_limit < (call_date - @_start_time)
+      if @_limit < (call_date - @_start_time) or @_stack_limit <= @stack_depth
         @_start_time = call_date
         setTimeout callback, 0
       else
+        @stack_depth++
         callback()
 
   helpers = 
