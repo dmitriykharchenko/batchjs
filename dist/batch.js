@@ -23,9 +23,9 @@ window.batch = new function() {
     }
     return keys;
   };
-  BatchBalancer = function(limit) {
+  BatchBalancer = function(limit, stack_limit) {
     this.stack_depth = 0;
-    this._stack_limit = 5000;
+    this._stack_limit = stack_limit || 5000;
     this._start_time = +new Date();
     return this._limit = limit || 50;
   };
@@ -55,8 +55,9 @@ window.batch = new function() {
     }
   };
   async_iterate = function(iterator, batch_balancer, complete) {
-    var balancer, complete_handlers, iteration, iteration_complete, iteration_initializer, keys, state;
+    var balancer, complete_handlers, is_data_array, iteration, iteration_complete, iteration_initializer, keys, state;
     keys = void 0;
+    is_data_array = false;
     iteration_initializer = null;
     balancer = batch_balancer || new BatchBalancer();
     state = {
@@ -79,6 +80,9 @@ window.batch = new function() {
       }
       if (keys.length !== 0 && !state.is_complete) {
         next_index = keys.shift();
+        if (is_data_array) {
+          next_index = +next_index;
+        }
         result = iterator(state.data[next_index], next_index, iteration_initializer);
         if (result !== void 0) {
           if (!state.result) {
@@ -89,18 +93,17 @@ window.batch = new function() {
       } else {
         state.is_complete = true;
         iteration_complete();
-        return state;
       }
       return balancer.start(iteration);
     } : function() {
       state.is_complete = true;
       state.result = state.data;
-      iteration_complete();
-      return state;
+      return iteration_complete();
     };
     iteration_initializer = function(data) {
       state.data = data;
-      keys = (is_array(data) || is_object(data) ? get_keys(state.data) : []);
+      is_data_array = is_array(data);
+      keys = (is_data_array || is_object(data) ? get_keys(state.data) : []);
       return balancer.start(iteration);
     };
     iteration_initializer.iterator = iterator;
@@ -152,10 +155,13 @@ window.batch = new function() {
       return this;
     },
     each: function(iterator) {
+      var _this = this;
       this._push({
         iterator: function(value, index, flow) {
-          if (iterator(value, index, flow) === false) {
-            return this.stop();
+          var result;
+          result = iterator(value, index, flow);
+          if (result === false) {
+            return _this.stop();
           }
         }
       });

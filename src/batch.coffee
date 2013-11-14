@@ -59,6 +59,7 @@ window.batch = new () ->
 
   async_iterate = (iterator, batch_balancer, complete) ->
     keys = undefined
+    is_data_array = false;
     iteration_initializer = null
     balancer = batch_balancer or new BatchBalancer()
     state = is_complete: false
@@ -71,8 +72,12 @@ window.batch = new () ->
 
     iteration = if is_function iterator then ->
       return false if state.is_wait
+
       if keys.length isnt 0 and not state.is_complete
         next_index = keys.shift()
+        if is_data_array
+          next_index = +next_index
+
         result = iterator state.data[next_index], next_index, iteration_initializer
         if result isnt undefined
           state.result = (if is_array state.data then [] else {}) unless state.result
@@ -80,7 +85,6 @@ window.batch = new () ->
       else
         state.is_complete = true
         iteration_complete()
-        return state
 
       balancer.start iteration
 
@@ -88,11 +92,12 @@ window.batch = new () ->
       state.is_complete = true
       state.result = state.data
       iteration_complete()
-      state
+
 
     iteration_initializer = (data) ->
       state.data = data
-      keys = (if is_array(data) or is_object(data) then get_keys(state.data) else [])
+      is_data_array = is_array(data)
+      keys = (if is_data_array or is_object(data) then get_keys(state.data) else [])
       balancer.start iteration
 
     iteration_initializer.iterator = iterator
@@ -139,8 +144,9 @@ window.batch = new () ->
       @
 
     each: (iterator) ->
-      @_push iterator: (value, index, flow) ->
-        @stop() if iterator(value, index, flow) is false
+      @_push iterator: (value, index, flow) =>
+        result = iterator(value, index, flow)
+        @stop() if result is false
       @
 
 

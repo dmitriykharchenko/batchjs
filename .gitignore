@@ -1,3 +1,5 @@
 _tmp/
 node_modules/
 .DS_Store
+.grunt
+_SpecRunner.html
