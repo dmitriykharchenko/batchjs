@@ -35,6 +35,7 @@ window.batch = new function() {
       call_date = +new Date();
       if (this._limit < (call_date - this._start_time) || this._stack_limit <= this.stack_depth) {
         this._start_time = call_date;
+        this.stack_depth = 0;
         return setTimeout(callback, 0);
       } else {
         this.stack_depth++;
@@ -151,8 +152,8 @@ window.batch = new function() {
     },
     use: function(data) {
       this._push({
-        complete: function(state) {
-          return state.result = data;
+        complete: function() {
+          return data;
         }
       });
       return this;
@@ -194,11 +195,12 @@ window.batch = new function() {
       this._push({
         iterator: function(value, index, flow) {
           if (iterator(value, index, flow)) {
-            return found = value;
+            found = value;
+            return flow.stop();
           }
         },
         complete: function(state) {
-          return state.result = found;
+          return found;
         }
       });
       return this;
@@ -206,7 +208,8 @@ window.batch = new function() {
     next: function(handler) {
       this._push({
         complete: function(result, state) {
-          return handler(result);
+          handler(result);
+          return void 0;
         }
       });
       return this;

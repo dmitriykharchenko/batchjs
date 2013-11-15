@@ -43,6 +43,7 @@ window.batch = new () ->
       call_date = +new Date()
       if @_limit < (call_date - @_start_time) or @_stack_limit <= @stack_depth
         @_start_time = call_date
+        @stack_depth = 0;
         setTimeout callback, 0
       else
         @stack_depth++
@@ -65,7 +66,7 @@ window.batch = new () ->
 
         if handler_result isnt undefined
           @result = handler_result
-        
+
         @balancer.start =>
           @_call_complete_handlers()
 
@@ -151,8 +152,8 @@ window.batch = new () ->
       @
 
     use: (data) ->
-      @_push complete: (state) ->
-        state.result = data
+      @_push complete: () ->
+        data
       @
 
     each: (iterator) ->
@@ -163,7 +164,8 @@ window.batch = new () ->
 
 
     map: (iterator) ->
-      @_push iterator: iterator
+      @_push
+        iterator: iterator
 
     reduce: (iterator) ->
       summary = undefined
@@ -180,16 +182,19 @@ window.batch = new () ->
       found = undefined
       @_push
         iterator: (value, index, flow) ->
-          found = value  if iterator(value, index, flow)
+          if iterator(value, index, flow)
+            found = value
+            flow.stop()
 
         complete: (state) ->
-          state.result = found
+          found
       @
 
 
     next: (handler) ->
       @_push complete: (result, state) ->
         handler(result)
+        return undefined
       @
 
 
