@@ -9,7 +9,7 @@
 window.batch = new () ->
 
   #
-  # Utitity helpers, got from underscore.js
+  # Utitity helpers, got from underscore.js (http://underscorejs.org/)
   #
   is_function = (func) ->
     typeof func is 'function'
@@ -48,88 +48,100 @@ window.batch = new () ->
         @stack_depth++
         callback()
 
-  helpers = 
-    call_complete_handlers: (handlers, state, balancer) ->
-      if 0 < handlers.length
-        handler = handlers.shift()
-        handler state
-        balancer.start ->
-          helpers.call_complete_handlers handlers, state, balancer
+  iteration_flow = (@iterator, @balancer) ->
+    @state = {}
+    @_handlers = []
+
+    if not @balancer
+      @balancer = new BatchBalancer()
+
+    @
+
+  iteration_flow:: =
+    _call_complete_handlers: () ->
+      if 0 < @_handlers.length
+        handler = @_handlers.shift()
+        handler_result = handler @result, @state
+
+        if handler_result isnt undefined
+          @result = handler_result
+        
+        @balancer.start =>
+          @_call_complete_handlers()
+
+    init: (data) ->
+
+      @data = data
+      @is_array_data = is_array(data)
+      keys = (if @is_data_array or is_object(data) then get_keys(data) else [])
+
+      if not is_function @iterator
+
+        @iteration = () =>
+
+          @state.is_complete = true
+          @result = @data
+          @_call_complete_handlers()
+
+      else 
+
+        @iteration = () =>
+          return false if @state.is_wait
+
+          if keys.length isnt 0 and not @state.is_complete
+            next_index = keys.shift()
+            if @is_array_data
+              next_index = +next_index
+
+            result = @iterator @data[next_index], next_index, @
+            if result isnt undefined
+              @result = (if @is_array_data then [] else {}) unless @result
+              @result[next_index] = result
+
+            @balancer.start @iteration
+          else
+            @state.is_complete = true
+            @_call_complete_handlers()
+
+      @start()
+      
+
+    start: () ->
+      @balancer.start @iteration
+
+    stop: () ->
+      @state.is_complete = true
+
+    pause: () ->
+      @state.is_wait = true
+
+    resume: () ->
+      @state.is_wait = false
+      @start()
 
 
-  async_iterate = (iterator, batch_balancer, complete) ->
-    keys = undefined
-    is_data_array = false;
-    iteration_initializer = null
-    balancer = batch_balancer or new BatchBalancer()
-    state = is_complete: false
-    complete_handlers = []
-    complete_handlers.push complete if is_function(complete)
+    on_complete: (handler) ->
+      if is_function handler
+        @_handlers.push handler
 
-    iteration_complete = ->
-      state.result = state.data unless state.result
-      helpers.call_complete_handlers complete_handlers, state, balancer
+        if @state.is_complete
+          @_call_complete_handlers()
 
-    iteration = if is_function iterator then ->
-      return false if state.is_wait
-
-      if keys.length isnt 0 and not state.is_complete
-        next_index = keys.shift()
-        if is_data_array
-          next_index = +next_index
-
-        result = iterator state.data[next_index], next_index, iteration_initializer
-        if result isnt undefined
-          state.result = (if is_array state.data then [] else {}) unless state.result
-          state.result[next_index] = result
-      else
-        state.is_complete = true
-        iteration_complete()
-
-      balancer.start iteration
-
-    else ->
-      state.is_complete = true
-      state.result = state.data
-      iteration_complete()
-
-
-    iteration_initializer = (data) ->
-      state.data = data
-      is_data_array = is_array(data)
-      keys = (if is_data_array or is_object(data) then get_keys(state.data) else [])
-      balancer.start iteration
-
-    iteration_initializer.iterator = iterator
-
-    iteration_initializer.complete = (handler) ->
-      complete_handlers.push handler
-      iteration_complete() if state.is_complete
-
-    iteration_initializer.stop = ->
-      state.is_complete = true
-
-    iteration_initializer.pause = () ->
-      state.is_wait = true
-
-    iteration_initializer.resume = () ->
-      state.is_wait = false
-      balancer?.start iteration
-
-    iteration_initializer.state = state
-    iteration_initializer
 
   Worker = (data) ->
-    @_last_iteration = async_iterate()
-    @_last_iteration data or []
+    @_last_iteration = new iteration_flow()
+    @_last_iteration.init data or []
+
     @_balancer = new BatchBalancer
     @
 
   Worker:: =
     _push: (data) ->
-      new_iteration = async_iterate(data.iterator, @_balancer, data.complete)
-      @_last_iteration.complete (state) ->
-        new_iteration state.result
+      new_iteration = new iteration_flow(data.iterator, @_balancer)
+      new_iteration.on_complete data.complete
+
+      @_last_iteration.on_complete (data, state) ->
+        new_iteration.init data
 
       @_last_iteration = new_iteration
       @
@@ -146,7 +158,7 @@ window.batch = new () ->
     each: (iterator) ->
       @_push iterator: (value, index, flow) =>
         result = iterator(value, index, flow)
-        @stop() if result is false
+        flow.stop() if result is false
       @
 
 
@@ -159,8 +171,8 @@ window.batch = new () ->
         iterator: (value, index, flow) ->
           summary = iterator(value, index, summary, flow)
 
-        complete: (state) ->
-          state.result = summary
+        complete: (data, state) ->
+          summary
       @
 
 
@@ -176,9 +188,8 @@ window.batch = new () ->
 
 
     next: (handler) ->
-      @_push complete: (state) ->
-        data = handler(state.result)
-        state.result = if data isnt undefined then data else state.data
+      @_push complete: (result, state) ->
+        handler(result)
       @
 
 
