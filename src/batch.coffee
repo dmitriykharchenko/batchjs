@@ -31,12 +31,16 @@ window.batch = new () ->
 
     keys
 
+
+  # Some hardcoded defaults for BatchBalancer.
+  # There should be better way for that :-)
+
   balancer_defaults:
     stack_limit: 5000,
     block_limit: 50
 
   
-  #### BatchBalancer
+  #### BatchBalancer(limit, stack_limit)
   # Allows to make huge amout of calls without blocked UI
 
   BatchBalancer = (limit, stack_limit) ->
@@ -47,7 +51,7 @@ window.batch = new () ->
 
   BatchBalancer:: =
 
-  ##### BatchBalancer.start
+  ##### BatchBalancer::start(callback)
   # Takes callback and balancing between sync or async call to callback function.
     start: (callback) ->
       call_date = +new Date()
@@ -64,7 +68,7 @@ window.batch = new () ->
         @stack_depth++
         callback()
 
-  #### IterationFlow
+  #### IterationFlow(iterator, balancer)
   # Initialize with iterator and balancer, and receives data on start.
   # Controls start/stop of iterations, also collects data and calls complete callbacks when done
 
@@ -83,7 +87,7 @@ window.batch = new () ->
 
   IterationFlow:: =
 
-    ##### IterationFlow._call_complete_handlers
+    ##### IterationFlow::_call_complete_handlers()
     # Calls complete callbacks with BatchBalancer
 
     _call_complete_handlers: () ->
@@ -98,7 +102,7 @@ window.batch = new () ->
           @_call_complete_handlers()
 
 
-    ##### IterationFlow.start
+    ##### IterationFlow::start(data)
     # Initializes iteration function for data.
     # If iteration flow didn't received iterator, then makes empty one, which  only completes flow and calls complete handlers
 
@@ -123,6 +127,7 @@ window.batch = new () ->
             @_call_complete_handlers()
 
         else 
+
         # iteration function, gets next key (or index), takes data for this key and calls iterator callback.
         # When comes to the end, calls complete handlers
           @_iteration = () =>
@@ -151,16 +156,29 @@ window.batch = new () ->
         @balancer.start @_iteration
       
 
+    ##### IterationFlow::stop()
+    # Stops iterations and cause calling complete handlers,
+    # since that there is no way to resume iterations
     stop: () ->
       @state.is_complete = true
 
+    ##### IterationFlow::pause()
+    # Pauses iterations without calling complete handlers,
+    # it can be resumed later with IterationFlow::resume() method
+
     pause: () ->
       @state.is_wait = true
+
+
+    ##### IterationFlow::resume()
+    # Resumes iterations.
 
     resume: () ->
       @state.is_wait = false
       @start()
 
+    ##### IterationFlow::on_complete()
+    # Binds handler to complete of this flow
 
     on_complete: (handler) ->
       if is_function handler
@@ -223,24 +241,28 @@ window.batch = new () ->
         flow.stop() if result is false
       @
 
-    ##### Stream::map(iterator)
-    # maps elements with iterator function
+    ##### Stream::map(transformator)
+    # Produces new hash or array (depends of source data) 
+    # by mapping elements from source through a 'transformator' function
 
-    map: (iterator) ->
+    map: (transformator) ->
       @_push
-        iterator: iterator
+        iterator: transformator
 
 
-    ##### Stream::reduce(iterator)
-    # Reduce for data.
+    ##### Stream::reduce(iterator, summary_initial)
+    # Converts data into a single value.
+    # Initial state of reduce value can be set in second argument.
     # Iterator for 'reduce()' method accepts additional 3rd argument 'summary',
-    # 'flow' is 4th in this case.
+    # ('flow' is 4th in this case)
 
-    reduce: (iterator) ->
-      summary = undefined
+    reduce: (iterator, summary_initial) ->
+      summary = summary_initial
       @_push
         iterator: (value, index, flow) ->
-          summary = iterator(value, index, summary, flow)
+          result = iterator(value, index, summary, flow)
+          if result isnt undefined
+            summary = result
 
         complete: (data, state) ->
           summary

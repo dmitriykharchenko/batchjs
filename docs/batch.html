@@ -69,11 +69,7 @@ Freely distributable under the MIT license.</p>
       <span class="keyword">if</span> obj.hasOwnProperty key
         keys[keys.length] = key
 
-    keys
-
-  <span class="attribute">balancer_defaults</span>:
-    <span class="attribute">stack_limit</span>: <span class="number">5000</span>,
-    <span class="attribute">block_limit</span>: <span class="number">50</span></pre></div></div>
+    keys</pre></div></div>
             
         </li>
         
@@ -84,7 +80,25 @@ Freely distributable under the MIT license.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-3">&#182;</a>
               </div>
-              <h3 id="batchbalancer">BatchBalancer</h3>
+              <p>Some hardcoded defaults for BatchBalancer.
+There should be better way for that :-)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="attribute">balancer_defaults</span>:
+    <span class="attribute">stack_limit</span>: <span class="number">5000</span>,
+    <span class="attribute">block_limit</span>: <span class="number">50</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <h3 id="batchbalancer-limit-stack_limit-">BatchBalancer(limit, stack_limit)</h3>
 <p>Allows to make huge amout of calls without blocked UI</p>
 
             </div>
@@ -100,13 +114,13 @@ Freely distributable under the MIT license.</p>
         </li>
         
         
-        <li id="section-4">
+        <li id="section-5">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-4">&#182;</a>
+                <a class="pilcrow" href="#section-5">&#182;</a>
               </div>
-              <h4 id="batchbalancer-start">BatchBalancer.start</h4>
+              <h4 id="batchbalancer-start-callback-">BatchBalancer::start(callback)</h4>
 <p>Takes callback and balancing between sync or async call to callback function.</p>
 
             </div>
@@ -117,11 +131,11 @@ Freely distributable under the MIT license.</p>
         </li>
         
         
-        <li id="section-5">
+        <li id="section-6">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-5">&#182;</a>
+                <a class="pilcrow" href="#section-6">&#182;</a>
               </div>
               <p>brakes if time or stack limit exeeded</p>
 
@@ -141,13 +155,13 @@ Freely distributable under the MIT license.</p>
         </li>
         
         
-        <li id="section-6">
+        <li id="section-7">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-6">&#182;</a>
+                <a class="pilcrow" href="#section-7">&#182;</a>
               </div>
-              <h3 id="iterationflow">IterationFlow</h3>
+              <h3 id="iterationflow-iterator-balancer-">IterationFlow(iterator, balancer)</h3>
 <p>Initialize with iterator and balancer, and receives data on start.
 Controls start/stop of iterations, also collects data and calls complete callbacks when done</p>
 <p>Such way of initalizing is for sake of asyncronus nature, 
@@ -170,13 +184,13 @@ Data appears after previous flow is done.</p>
         </li>
         
         
-        <li id="section-7">
+        <li id="section-8">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-7">&#182;</a>
+                <a class="pilcrow" href="#section-8">&#182;</a>
               </div>
-              <h4 id="iterationflow-_call_complete_handlers">IterationFlow._call_complete_handlers</h4>
+              <h4 id="iterationflow-_call_complete_handlers-">IterationFlow::_call_complete_handlers()</h4>
 <p>Calls complete callbacks with BatchBalancer</p>
 
             </div>
@@ -195,13 +209,13 @@ Data appears after previous flow is done.</p>
         </li>
         
         
-        <li id="section-8">
+        <li id="section-9">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-8">&#182;</a>
+                <a class="pilcrow" href="#section-9">&#182;</a>
               </div>
-              <h4 id="iterationflow-start">IterationFlow.start</h4>
+              <h4 id="iterationflow-start-data-">IterationFlow::start(data)</h4>
 <p>Initializes iteration function for data.
 If iteration flow didn&#39;t received iterator, then makes empty one, which  only completes flow and calls complete handlers</p>
 
@@ -221,11 +235,11 @@ If iteration flow didn&#39;t received iterator, then makes empty one, which  onl
         </li>
         
         
-        <li id="section-9">
+        <li id="section-10">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-9">&#182;</a>
+                <a class="pilcrow" href="#section-10">&#182;</a>
               </div>
               <p>empty iterator</p>
 
@@ -244,11 +258,11 @@ If iteration flow didn&#39;t received iterator, then makes empty one, which  onl
         </li>
         
         
-        <li id="section-10">
+        <li id="section-11">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-10">&#182;</a>
+                <a class="pilcrow" href="#section-11">&#182;</a>
               </div>
               <p>iteration function, gets next key (or index), takes data for this key and calls iterator callback.
 When comes to the end, calls complete handlers</p>
@@ -260,11 +274,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-11">
+        <li id="section-12">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-11">&#182;</a>
+                <a class="pilcrow" href="#section-12">&#182;</a>
               </div>
               <p>stops if flow is paused</p>
 
@@ -283,11 +297,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-12">
+        <li id="section-13">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-12">&#182;</a>
+                <a class="pilcrow" href="#section-13">&#182;</a>
               </div>
               <p>collecting data from iterator callback</p>
 
@@ -302,21 +316,77 @@ When comes to the end, calls complete handlers</p>
               <span class="property">@state</span>.is_complete = <span class="literal">true</span>
               <span class="property">@_call_complete_handlers</span>()
 
-        <span class="property">@balancer</span>.start <span class="property">@_iteration</span>
-      
+        <span class="property">@balancer</span>.start <span class="property">@_iteration</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <h4 id="iterationflow-stop-">IterationFlow::stop()</h4>
+<p>Stops iterations and cause calling complete handlers,
+since that there is no way to resume iterations</p>
 
-    <span class="attribute">stop</span>: <span class="function"><span class="params">()</span> -&gt;</span>
-      <span class="property">@state</span>.is_complete = <span class="literal">true</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">stop</span>: <span class="function"><span class="params">()</span> -&gt;</span>
+      <span class="property">@state</span>.is_complete = <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <h4 id="iterationflow-pause-">IterationFlow::pause()</h4>
+<p>Pauses iterations without calling complete handlers,
+it can be resumed later with IterationFlow::resume() method</p>
 
-    <span class="attribute">pause</span>: <span class="function"><span class="params">()</span> -&gt;</span>
-      <span class="property">@state</span>.is_wait = <span class="literal">true</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">pause</span>: <span class="function"><span class="params">()</span> -&gt;</span>
+      <span class="property">@state</span>.is_wait = <span class="literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <h4 id="iterationflow-resume-">IterationFlow::resume()</h4>
+<p>Resumes iterations.</p>
 
-    <span class="attribute">resume</span>: <span class="function"><span class="params">()</span> -&gt;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">resume</span>: <span class="function"><span class="params">()</span> -&gt;</span>
       <span class="property">@state</span>.is_wait = <span class="literal">false</span>
-      <span class="property">@start</span>()
+      <span class="property">@start</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <h4 id="iterationflow-on_complete-">IterationFlow::on_complete()</h4>
+<p>Binds handler to complete of this flow</p>
 
-
-    <span class="attribute">on_complete</span>: <span class="function"><span class="params">(handler)</span> -&gt;</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">on_complete</span>: <span class="function"><span class="params">(handler)</span> -&gt;</span>
       <span class="keyword">if</span> is_function handler
         <span class="property">@_handlers</span>.push handler
 
@@ -326,11 +396,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-13">
+        <li id="section-18">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-13">&#182;</a>
+                <a class="pilcrow" href="#section-18">&#182;</a>
               </div>
               <h3 id="stream">Stream</h3>
 <p>Consumes data and iterator for it, chain it with previous iteration flow and return result to complete callbacks</p>
@@ -349,11 +419,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-14">
+        <li id="section-19">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-14">&#182;</a>
+                <a class="pilcrow" href="#section-19">&#182;</a>
               </div>
               <h4 id="stream-_push-data-">Stream::_push(data)</h4>
 <p>creates new iterations flow and chains it to previous one
@@ -374,11 +444,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-15">
+        <li id="section-20">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-15">&#182;</a>
+                <a class="pilcrow" href="#section-20">&#182;</a>
               </div>
               <h4 id="stream-stop-">Stream::stop()</h4>
 <p>stops current flow</p>
@@ -392,11 +462,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-16">
+        <li id="section-21">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-16">&#182;</a>
+                <a class="pilcrow" href="#section-21">&#182;</a>
               </div>
               <h4 id="stream-use-data-">Stream::use(data)</h4>
 <p>set data for any next iterations</p>
@@ -411,11 +481,11 @@ When comes to the end, calls complete handlers</p>
         </li>
         
         
-        <li id="section-17">
+        <li id="section-22">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-17">&#182;</a>
+                <a class="pilcrow" href="#section-22">&#182;</a>
               </div>
               <h4 id="stream-each-iterator-">Stream::each(iterator)</h4>
 <p>calls iterator for each element in data
@@ -432,42 +502,46 @@ stops if iterator return false</p>
         </li>
         
         
-        <li id="section-18">
+        <li id="section-23">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-18">&#182;</a>
+                <a class="pilcrow" href="#section-23">&#182;</a>
               </div>
-              <h4 id="stream-map-iterator-">Stream::map(iterator)</h4>
-<p>maps elements with iterator function</p>
+              <h4 id="stream-map-transformator-">Stream::map(transformator)</h4>
+<p>Produces new hash or array (depends of source data) 
+by mapping elements from source through a &#39;transformator&#39; function</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="attribute">map</span>: <span class="function"><span class="params">(iterator)</span> -&gt;</span>
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">map</span>: <span class="function"><span class="params">(transformator)</span> -&gt;</span>
       <span class="property">@_push</span>
-        <span class="attribute">iterator</span>: iterator</pre></div></div>
+        <span class="attribute">iterator</span>: transformator</pre></div></div>
             
         </li>
         
         
-        <li id="section-19">
+        <li id="section-24">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-19">&#182;</a>
+                <a class="pilcrow" href="#section-24">&#182;</a>
               </div>
-              <h4 id="stream-reduce-iterator-">Stream::reduce(iterator)</h4>
-<p>Reduce for data.
+              <h4 id="stream-reduce-iterator-summary_initial-">Stream::reduce(iterator, summary_initial)</h4>
+<p>Converts data into a single value.
+Initial state of reduce value can be set in second argument.
 Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summary&#39;,
-&#39;flow&#39; is 4th in this case.</p>
+(&#39;flow&#39; is 4th in this case)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="attribute">reduce</span>: <span class="function"><span class="params">(iterator)</span> -&gt;</span>
-      summary = <span class="literal">undefined</span>
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">reduce</span>: <span class="function"><span class="params">(iterator, summary_initial)</span> -&gt;</span>
+      summary = summary_initial
       <span class="property">@_push</span>
         <span class="attribute">iterator</span>: <span class="function"><span class="params">(value, index, flow)</span> -&gt;</span>
-          summary = iterator(value, index, summary, flow)
+          result = iterator(value, index, summary, flow)
+          <span class="keyword">if</span> result <span class="keyword">isnt</span> <span class="literal">undefined</span>
+            summary = result
 
         <span class="attribute">complete</span>: <span class="function"><span class="params">(data, state)</span> -&gt;</span>
           summary
@@ -476,11 +550,11 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
         </li>
         
         
-        <li id="section-20">
+        <li id="section-25">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-20">&#182;</a>
+                <a class="pilcrow" href="#section-25">&#182;</a>
               </div>
               <h4 id="stream-find-iterator-">Stream::find(iterator)</h4>
 <p>finds first element in collection</p>
@@ -502,11 +576,11 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
         </li>
         
         
-        <li id="section-21">
+        <li id="section-26">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-21">&#182;</a>
+                <a class="pilcrow" href="#section-26">&#182;</a>
               </div>
               <h4 id="stream-next-handler-">Stream::next(handler)</h4>
 <p>binds handler to complete of current flow</p>

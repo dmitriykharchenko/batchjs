@@ -184,17 +184,21 @@ window.batch = new function() {
       });
       return this;
     },
-    map: function(iterator) {
+    map: function(transformator) {
       return this._push({
-        iterator: iterator
+        iterator: transformator
       });
     },
-    reduce: function(iterator) {
+    reduce: function(iterator, summary_initial) {
       var summary;
-      summary = void 0;
+      summary = summary_initial;
       this._push({
         iterator: function(value, index, flow) {
-          return summary = iterator(value, index, summary, flow);
+          var result;
+          result = iterator(value, index, summary, flow);
+          if (result !== void 0) {
+            return summary = result;
+          }
         },
         complete: function(data, state) {
           return summary;
