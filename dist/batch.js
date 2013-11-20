@@ -1,5 +1,5 @@
 window.batch = new function() {
-  var BatchBalancer, IterationFlow, Stream, get_keys, is_array, is_function, is_object;
+  var BatchBalancer, IterationFlow, Stream, balancer_defaults, get_keys, is_array, is_function, is_object;
   is_function = function(func) {
     return typeof func === 'function';
   };
@@ -23,12 +23,10 @@ window.batch = new function() {
     }
     return keys;
   };
-  ({
-    balancer_defaults: {
-      stack_limit: 5000,
-      block_limit: 50
-    }
-  });
+  balancer_defaults = {
+    stack_limit: 5000,
+    block_limit: 50
+  };
   BatchBalancer = function(limit, stack_limit) {
     this.stack_depth = 0;
     this._stack_limit = stack_limit || balancer_defaults.stack_limit;

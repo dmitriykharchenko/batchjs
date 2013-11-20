@@ -35,7 +35,7 @@ window.batch = new () ->
   # Some hardcoded defaults for BatchBalancer.
   # There should be better way for that :-)
 
-  balancer_defaults:
+  balancer_defaults =
     stack_limit: 5000,
     block_limit: 50
 
