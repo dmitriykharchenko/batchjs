@@ -1,5 +1,5 @@
 window.batch = new function() {
-  var BatchBalancer, Worker, get_keys, is_array, is_function, is_object, iteration_flow;
+  var BatchBalancer, IterationFlow, Stream, get_keys, is_array, is_function, is_object;
   is_function = function(func) {
     return typeof func === 'function';
   };
@@ -23,17 +23,25 @@ window.batch = new function() {
     }
     return keys;
   };
+  ({
+    balancer_defaults: {
+      stack_limit: 5000,
+      block_limit: 50
+    }
+  });
   BatchBalancer = function(limit, stack_limit) {
     this.stack_depth = 0;
-    this._stack_limit = stack_limit || 5000;
+    this._stack_limit = stack_limit || balancer_defaults.stack_limit;
     this._start_time = +new Date();
-    return this._limit = limit || 50;
+    return this._limit = limit || balancer_defaults.block_limit;
   };
   BatchBalancer.prototype = {
     start: function(callback) {
-      var call_date;
+      var call_date, is_block_limit_exceed, is_stack_overflow;
       call_date = +new Date();
-      if (this._limit < (call_date - this._start_time) || this._stack_limit <= this.stack_depth) {
+      is_block_limit_exceed = this._limit < (call_date - this._start_time);
+      is_stack_overflow = this._stack_limit <= this.stack_depth;
+      if (is_block_limit_exceed || is_stack_overflow) {
         this._start_time = call_date;
         this.stack_depth = 0;
         return setTimeout(callback, 0);
@@ -43,7 +51,7 @@ window.batch = new function() {
       }
     }
   };
-  iteration_flow = function(iterator, balancer) {
+  IterationFlow = function(iterator, balancer) {
     this.iterator = iterator;
     this.balancer = balancer;
     this.state = {};
@@ -53,7 +61,7 @@ window.batch = new function() {
     }
     return this;
   };
-  iteration_flow.prototype = {
+  IterationFlow.prototype = {
     _call_complete_handlers: function() {
       var handler, handler_result,
         _this = this;
@@ -68,47 +76,52 @@ window.batch = new function() {
         });
       }
     },
-    init: function(data) {
+    start: function(data) {
       var keys,
         _this = this;
-      this.data = data;
-      this.is_array_data = is_array(data);
-      keys = (this.is_data_array || is_object(data) ? get_keys(data) : []);
-      if (!is_function(this.iterator)) {
-        this.iteration = function() {
-          _this.state.is_complete = true;
-          _this.result = _this.data;
-          return _this._call_complete_handlers();
-        };
+      if (this._iteration) {
+        if (!this.state.is_complete) {
+          return this.balancer.start(this._iteration);
+        } else {
+          return this._call_complete_handlers();
+        }
       } else {
-        this.iteration = function() {
-          var next_index, result;
-          if (_this.state.is_wait) {
-            return false;
-          }
-          if (keys.length !== 0 && !_this.state.is_complete) {
-            next_index = keys.shift();
-            if (_this.is_array_data) {
-              next_index = +next_index;
-            }
-            result = _this.iterator(_this.data[next_index], next_index, _this);
-            if (result !== void 0) {
-              if (!_this.result) {
-                _this.result = (_this.is_array_data ? [] : {});
-              }
-              _this.result[next_index] = result;
-            }
-            return _this.balancer.start(_this.iteration);
-          } else {
+        this.data = data;
+        this.is_array_data = is_array(this.data);
+        keys = (this.is_data_array || is_object(this.data) ? get_keys(this.data) : []);
+        if (!is_function(this.iterator)) {
+          this._iteration = function() {
             _this.state.is_complete = true;
+            _this.result = _this.data;
             return _this._call_complete_handlers();
-          }
-        };
+          };
+        } else {
+          this._iteration = function() {
+            var next_index, result;
+            if (_this.state.is_wait) {
+              return false;
+            }
+            if (keys.length !== 0 && !_this.state.is_complete) {
+              next_index = keys.shift();
+              if (_this.is_array_data) {
+                next_index = +next_index;
+              }
+              result = _this.iterator(_this.data[next_index], next_index, _this);
+              if (result !== void 0) {
+                if (!_this.result) {
+                  _this.result = (_this.is_array_data ? [] : {});
+                }
+                _this.result[next_index] = result;
+              }
+              return _this.balancer.start(_this._iteration);
+            } else {
+              _this.state.is_complete = true;
+              return _this._call_complete_handlers();
+            }
+          };
+        }
+        return this.balancer.start(this._iteration);
       }
-      return this.start();
-    },
-    start: function() {
-      return this.balancer.start(this.iteration);
     },
     stop: function() {
       return this.state.is_complete = true;
@@ -129,25 +142,25 @@ window.batch = new function() {
       }
     }
   };
-  Worker = function(data) {
-    this._last_iteration = new iteration_flow();
-    this._last_iteration.init(data || []);
+  Stream = function(data) {
+    this._flow = new IterationFlow();
+    this._flow.start(data || []);
     this._balancer = new BatchBalancer;
     return this;
   };
-  Worker.prototype = {
+  Stream.prototype = {
     _push: function(data) {
-      var new_iteration;
-      new_iteration = new iteration_flow(data.iterator, this._balancer);
-      new_iteration.on_complete(data.complete);
-      this._last_iteration.on_complete(function(data, state) {
-        return new_iteration.init(data);
+      var new_flow;
+      new_flow = new IterationFlow(data.iterator, this._balancer);
+      new_flow.on_complete(data.complete);
+      this._flow.on_complete(function(data, state) {
+        return new_flow.start(data);
       });
-      this._last_iteration = new_iteration;
+      this._flow = new_flow;
       return this;
     },
     stop: function() {
-      this._last_iteration.stop();
+      this._flow.stop();
       return this;
     },
     use: function(data) {
@@ -206,16 +219,14 @@ window.batch = new function() {
       return this;
     },
     next: function(handler) {
-      this._push({
-        complete: function(result, state) {
-          handler(result);
-          return void 0;
-        }
+      this._flow.on_complete(function(result, state) {
+        handler(result);
+        return void 0;
       });
       return this;
     }
   };
   return function(data) {
-    return new Worker(data);
+    return new Stream(data);
   };
 };

@@ -8,8 +8,8 @@
 
 window.batch = new () ->
 
-  #
-  # Utitity helpers, got from underscore.js (http://underscorejs.org/)
+  #### Utitity helpers
+  # Got from underscore.js (http://underscorejs.org/)
   #
   is_function = (func) ->
     typeof func is 'function'
@@ -24,32 +24,55 @@ window.batch = new () ->
     if not is_object obj
       throw new TypeError 'Invalid object'
 
-    keys = [];
+    keys = []
     for key in obj 
       if obj.hasOwnProperty key
         keys[keys.length] = key
 
     keys
 
+  balancer_defaults:
+    stack_limit: 5000,
+    block_limit: 50
+
+  
+  #### BatchBalancer
+  # Allows to make huge amout of calls without blocked UI
 
   BatchBalancer = (limit, stack_limit) ->
-    @stack_depth = 0;
-    @_stack_limit = stack_limit or 5000;
+    @stack_depth = 0
+    @_stack_limit = stack_limit or balancer_defaults.stack_limit
     @_start_time = +new Date()
-    @_limit = limit or 50
+    @_limit = limit or balancer_defaults.block_limit
 
   BatchBalancer:: =
+
+  ##### BatchBalancer.start
+  # Takes callback and balancing between sync or async call to callback function.
     start: (callback) ->
       call_date = +new Date()
-      if @_limit < (call_date - @_start_time) or @_stack_limit <= @stack_depth
+
+      # brakes if time or stack limit exeeded
+      is_block_limit_exceed = @_limit < (call_date - @_start_time)
+      is_stack_overflow = @_stack_limit <= @stack_depth
+
+      if is_block_limit_exceed or is_stack_overflow
         @_start_time = call_date
-        @stack_depth = 0;
+        @stack_depth = 0
         setTimeout callback, 0
       else
         @stack_depth++
         callback()
 
-  iteration_flow = (@iterator, @balancer) ->
+  #### IterationFlow
+  # Initialize with iterator and balancer, and receives data on start.
+  # Controls start/stop of iterations, also collects data and calls complete callbacks when done
+
+  # Such way of initalizing is for sake of asyncronus nature, 
+  # when initialising new interation flow, there still might be no data for it.
+  # Data appears after previous flow is done.
+
+  IterationFlow = (@iterator, @balancer) ->
     @state = {}
     @_handlers = []
 
@@ -58,7 +81,11 @@ window.batch = new () ->
 
     @
 
-  iteration_flow:: =
+  IterationFlow:: =
+
+    ##### IterationFlow._call_complete_handlers
+    # Calls complete callbacks with BatchBalancer
+
     _call_complete_handlers: () ->
       if 0 < @_handlers.length
         handler = @_handlers.shift()
@@ -70,45 +97,59 @@ window.batch = new () ->
         @balancer.start =>
           @_call_complete_handlers()
 
-    init: (data) ->
 
-      @data = data
-      @is_array_data = is_array(data)
-      keys = (if @is_data_array or is_object(data) then get_keys(data) else [])
+    ##### IterationFlow.start
+    # Initializes iteration function for data.
+    # If iteration flow didn't received iterator, then makes empty one, which  only completes flow and calls complete handlers
 
-      if not is_function @iterator
-
-        @iteration = () =>
-
-          @state.is_complete = true
-          @result = @data
+    start: (data) ->
+      if @_iteration
+        if not @state.is_complete
+          @balancer.start @_iteration
+        else
           @_call_complete_handlers()
-
       else 
+        @data = data
+        @is_array_data = is_array(@data)
+        keys = (if @is_data_array or is_object(@data) then get_keys(@data) else [])
 
-        @iteration = () =>
-          return false if @state.is_wait
+        #empty iterator
+        if not is_function @iterator
 
-          if keys.length isnt 0 and not @state.is_complete
-            next_index = keys.shift()
-            if @is_array_data
-              next_index = +next_index
+          @_iteration = () =>
 
-            result = @iterator @data[next_index], next_index, @
-            if result isnt undefined
-              @result = (if @is_array_data then [] else {}) unless @result
-              @result[next_index] = result
-
-            @balancer.start @iteration
-          else
             @state.is_complete = true
+            @result = @data
             @_call_complete_handlers()
 
-      @start()
-      
+        else 
+        # iteration function, gets next key (or index), takes data for this key and calls iterator callback.
+        # When comes to the end, calls complete handlers
+          @_iteration = () =>
 
-    start: () ->
-      @balancer.start @iteration
+            # stops if flow is paused
+            return false if @state.is_wait
+
+            if keys.length isnt 0 and not @state.is_complete
+              next_index = keys.shift()
+
+              if @is_array_data
+                next_index = +next_index
+
+              result = @iterator @data[next_index], next_index, @
+
+              # collecting data from iterator callback
+              if result isnt undefined
+                @result = (if @is_array_data then [] else {}) unless @result
+                @result[next_index] = result
+
+              @balancer.start @_iteration
+            else
+              @state.is_complete = true
+              @_call_complete_handlers()
+
+        @balancer.start @_iteration
+      
 
     stop: () ->
       @state.is_complete = true
@@ -129,32 +170,52 @@ window.batch = new () ->
           @_call_complete_handlers()
 
 
-  Worker = (data) ->
-    @_last_iteration = new iteration_flow()
-    @_last_iteration.init data or []
+
+  #### Stream
+  # Consumes data and iterator for it, chain it with previous iteration flow and return result to complete callbacks
+
+  Stream = (data) ->
+    @_flow = new IterationFlow()
+    @_flow.start data or []
 
     @_balancer = new BatchBalancer
     @
 
-  Worker:: =
+  Stream:: =
+
+    ##### Stream::_push(data)
+    # creates new iterations flow and chains it to previous one
+    # 'data' should contain iterator function or/and complete handler.
+
     _push: (data) ->
-      new_iteration = new iteration_flow(data.iterator, @_balancer)
-      new_iteration.on_complete data.complete
+      new_flow = new IterationFlow(data.iterator, @_balancer)
+      new_flow.on_complete data.complete
 
-      @_last_iteration.on_complete (data, state) ->
-        new_iteration.init data
+      @_flow.on_complete (data, state) ->
+        new_flow.start data
 
-      @_last_iteration = new_iteration
+      @_flow = new_flow
       @
+
+    ##### Stream::stop()
+    # stops current flow
 
     stop: ->
-      @_last_iteration.stop()
+      @_flow.stop()
       @
+
+    ##### Stream::use(data)
+    # set data for any next iterations
 
     use: (data) ->
       @_push complete: () ->
         data
       @
+
+
+    ##### Stream::each(iterator)
+    # calls iterator for each element in data
+    # stops if iterator return false
 
     each: (iterator) ->
       @_push iterator: (value, index, flow) =>
@@ -162,10 +223,18 @@ window.batch = new () ->
         flow.stop() if result is false
       @
 
+    ##### Stream::map(iterator)
+    # maps elements with iterator function
 
     map: (iterator) ->
       @_push
         iterator: iterator
+
+
+    ##### Stream::reduce(iterator)
+    # Reduce for data.
+    # Iterator for 'reduce()' method accepts additional 3rd argument 'summary',
+    # 'flow' is 4th in this case.
 
     reduce: (iterator) ->
       summary = undefined
@@ -177,6 +246,8 @@ window.batch = new () ->
           summary
       @
 
+    ##### Stream::find(iterator)
+    # finds first element in collection
 
     find: (iterator) ->
       found = undefined
@@ -191,12 +262,15 @@ window.batch = new () ->
       @
 
 
+    ##### Stream::next(handler)
+    # binds handler to complete of current flow
+
     next: (handler) ->
-      @_push complete: (result, state) ->
+      @_flow.on_complete (result, state) ->
         handler(result)
         return undefined
       @
 
 
   (data) ->
-    new Worker(data)
+    new Stream(data)
