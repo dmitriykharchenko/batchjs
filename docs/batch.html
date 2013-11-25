@@ -27,7 +27,7 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-1">&#182;</a>
               </div>
-              <p>batch.js v 0.0.1
+              <p>batch.js v 0.1.0
 (c) 2012 Dmitriy Kharchenko
 <a href="https://github.com/aki-russia/batchjs">https://github.com/aki-russia/batchjs</a>
 Freely distributable under the MIT license.</p>
@@ -85,7 +85,7 @@ There should be better way for that :-)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="attribute">balancer_defaults</span>:
+            <div class="content"><div class='highlight'><pre>  balancer_defaults =
     <span class="attribute">stack_limit</span>: <span class="number">5000</span>,
     <span class="attribute">block_limit</span>: <span class="number">50</span></pre></div></div>
             
@@ -120,12 +120,12 @@ There should be better way for that :-)</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-5">&#182;</a>
               </div>
-              <h4 id="batchbalancer-start-callback-">BatchBalancer::start(callback)</h4>
+              <h4 id="batchbalancer-next-callback-">BatchBalancer::next(callback)</h4>
 <p>Takes callback and balancing between sync or async call to callback function.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="attribute">start</span>: <span class="function"><span class="params">(callback)</span> -&gt;</span>
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">next</span>: <span class="function"><span class="params">(callback)</span> -&gt;</span>
       call_date = +<span class="keyword">new</span> Date()</pre></div></div>
             
         </li>
@@ -203,7 +203,7 @@ Data appears after previous flow is done.</p>
         <span class="keyword">if</span> handler_result <span class="keyword">isnt</span> <span class="literal">undefined</span>
           <span class="property">@result</span> = handler_result
 
-        <span class="property">@balancer</span>.start<span class="function"> =&gt;</span>
+        <span class="property">@balancer</span>.next<span class="function"> =&gt;</span>
           <span class="property">@_call_complete_handlers</span>()</pre></div></div>
             
         </li>
@@ -224,7 +224,7 @@ If iteration flow didn&#39;t received iterator, then makes empty one, which  onl
             <div class="content"><div class='highlight'><pre>    <span class="attribute">start</span>: <span class="function"><span class="params">(data)</span> -&gt;</span>
       <span class="keyword">if</span> <span class="property">@_iteration</span>
         <span class="keyword">if</span> <span class="keyword">not</span> <span class="property">@state</span>.is_complete
-          <span class="property">@balancer</span>.start <span class="property">@_iteration</span>
+          <span class="property">@balancer</span>.next <span class="property">@_iteration</span>
         <span class="keyword">else</span>
           <span class="property">@_call_complete_handlers</span>()
       <span class="keyword">else</span> 
@@ -311,12 +311,12 @@ When comes to the end, calls complete handlers</p>
                 <span class="property">@result</span> = (<span class="keyword">if</span> <span class="property">@is_array_data</span> <span class="keyword">then</span> [] <span class="keyword">else</span> {}) <span class="keyword">unless</span> <span class="property">@result</span>
                 <span class="property">@result</span>[next_index] = result
 
-              <span class="property">@balancer</span>.start <span class="property">@_iteration</span>
+              <span class="property">@balancer</span>.next <span class="property">@_iteration</span>
             <span class="keyword">else</span>
               <span class="property">@state</span>.is_complete = <span class="literal">true</span>
               <span class="property">@_call_complete_handlers</span>()
 
-        <span class="property">@balancer</span>.start <span class="property">@_iteration</span></pre></div></div>
+        <span class="property">@balancer</span>.next <span class="property">@_iteration</span></pre></div></div>
             
         </li>
         
@@ -403,13 +403,13 @@ it can be resumed later with IterationFlow::resume() method</p>
                 <a class="pilcrow" href="#section-18">&#182;</a>
               </div>
               <h3 id="stream">Stream</h3>
-<p>Consumes data and iterator for it, chain it with previous iteration flow and return result to complete callbacks</p>
+<p>Consumes data and iterator for it, chain it with previous iteration flow, or just start new flow, and return result to complete callbacks</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>  <span class="function"><span class="title">Stream</span> = <span class="params">(data)</span> -&gt;</span>
-    <span class="property">@_flow</span> = <span class="keyword">new</span> IterationFlow()
-    <span class="property">@_flow</span>.start data <span class="keyword">or</span> []
+    <span class="property">@current_flow</span> = <span class="keyword">new</span> IterationFlow()
+    <span class="property">@current_flow</span>.start data <span class="keyword">or</span> []
 
     <span class="property">@_balancer</span> = <span class="keyword">new</span> BatchBalancer
     @
@@ -435,10 +435,10 @@ it can be resumed later with IterationFlow::resume() method</p>
       new_flow = <span class="keyword">new</span> IterationFlow(data.iterator, <span class="property">@_balancer</span>)
       new_flow.on_complete data.complete
 
-      <span class="property">@_flow</span>.on_complete <span class="function"><span class="params">(data, state)</span> -&gt;</span>
+      <span class="property">@current_flow</span>.on_complete <span class="function"><span class="params">(data, state)</span> -&gt;</span>
         new_flow.start data
 
-      <span class="property">@_flow</span> = new_flow
+      <span class="property">@current_flow</span> = new_flow
       @</pre></div></div>
             
         </li>
@@ -451,12 +451,13 @@ it can be resumed later with IterationFlow::resume() method</p>
                 <a class="pilcrow" href="#section-20">&#182;</a>
               </div>
               <h4 id="stream-stop-">Stream::stop()</h4>
-<p>stops current flow</p>
+<p>Stops current flow. It is mean that current flow will call all complete handlers 
+and next flow (if exist) also will start.</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>    <span class="attribute">stop</span>:<span class="function"> -&gt;</span>
-      <span class="property">@_flow</span>.stop()
+      <span class="property">@current_flow</span>.stop()
       @</pre></div></div>
             
         </li>
@@ -469,7 +470,7 @@ it can be resumed later with IterationFlow::resume() method</p>
                 <a class="pilcrow" href="#section-21">&#182;</a>
               </div>
               <h4 id="stream-use-data-">Stream::use(data)</h4>
-<p>set data for any next iterations</p>
+<p>Set data for any next iterations, any previous data will be thrown away.</p>
 
             </div>
             
@@ -488,7 +489,7 @@ it can be resumed later with IterationFlow::resume() method</p>
                 <a class="pilcrow" href="#section-22">&#182;</a>
               </div>
               <h4 id="stream-each-iterator-">Stream::each(iterator)</h4>
-<p>calls iterator for each element in data
+<p>Calls iterator for each element in data,
 stops if iterator return false</p>
 
             </div>
@@ -557,7 +558,7 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
                 <a class="pilcrow" href="#section-25">&#182;</a>
               </div>
               <h4 id="stream-find-iterator-">Stream::find(iterator)</h4>
-<p>finds first element in collection</p>
+<p>Finds first element in collection</p>
 
             </div>
             
@@ -583,12 +584,12 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
                 <a class="pilcrow" href="#section-26">&#182;</a>
               </div>
               <h4 id="stream-next-handler-">Stream::next(handler)</h4>
-<p>binds handler to complete of current flow</p>
+<p>Binds handler to complete of current flow</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>    <span class="attribute">next</span>: <span class="function"><span class="params">(handler)</span> -&gt;</span>
-      <span class="property">@_flow</span>.on_complete <span class="function"><span class="params">(result, state)</span> -&gt;</span>
+      <span class="property">@current_flow</span>.on_complete <span class="function"><span class="params">(result, state)</span> -&gt;</span>
         handler(result)
         <span class="keyword">return</span> <span class="literal">undefined</span>
       @

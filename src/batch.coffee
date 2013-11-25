@@ -1,4 +1,4 @@
-# batch.js v 0.0.1
+# batch.js v 0.1.0
 # (c) 2012 Dmitriy Kharchenko
 # https://github.com/aki-russia/batchjs
 # Freely distributable under the MIT license.
@@ -190,11 +190,11 @@ window.batch = new () ->
 
 
   #### Stream
-  # Consumes data and iterator for it, chain it with previous iteration flow and return result to complete callbacks
+  # Consumes data and iterator for it, chain it with previous iteration flow, or just start new flow, and return result to complete callbacks
 
   Stream = (data) ->
-    @_flow = new IterationFlow()
-    @_flow.start data or []
+    @current_flow = new IterationFlow()
+    @current_flow.start data or []
 
     @_balancer = new BatchBalancer
     @
@@ -209,21 +209,22 @@ window.batch = new () ->
       new_flow = new IterationFlow(data.iterator, @_balancer)
       new_flow.on_complete data.complete
 
-      @_flow.on_complete (data, state) ->
+      @current_flow.on_complete (data, state) ->
         new_flow.start data
 
-      @_flow = new_flow
+      @current_flow = new_flow
       @
 
     ##### Stream::stop()
-    # stops current flow
+    # Stops current flow. It is mean that current flow will call all complete handlers 
+    # and next flow (if exist) also will start.
 
     stop: ->
-      @_flow.stop()
+      @current_flow.stop()
       @
 
     ##### Stream::use(data)
-    # set data for any next iterations
+    # Set data for any next iterations, any previous data will be thrown away.
 
     use: (data) ->
       @_push complete: () ->
@@ -232,7 +233,7 @@ window.batch = new () ->
 
 
     ##### Stream::each(iterator)
-    # calls iterator for each element in data
+    # Calls iterator for each element in data,
     # stops if iterator return false
 
     each: (iterator) ->
@@ -269,7 +270,7 @@ window.batch = new () ->
       @
 
     ##### Stream::find(iterator)
-    # finds first element in collection
+    # Finds first element in collection
 
     find: (iterator) ->
       found = undefined
@@ -285,10 +286,10 @@ window.batch = new () ->
 
 
     ##### Stream::next(handler)
-    # binds handler to complete of current flow
+    # Binds handler to complete of current flow
 
     next: (handler) ->
-      @_flow.on_complete (result, state) ->
+      @current_flow.on_complete (result, state) ->
         handler(result)
         return undefined
       @
