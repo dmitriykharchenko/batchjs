@@ -5,10 +5,15 @@ Made to easily iterate, map, reduce and find elements when you have to deal with
 It is asynchronous, chainable, and no blocked UI anymore.
 
 
-##Documentation
 
-Check out [docs](https://github.com/aki-russia/batchjs/tree/master/docs) folder.
+##Read more about it
 
+Check out [docs](https://github.com/aki-russia/batchjs/tree/master/docs).
+
+
+##Install
+
+	$ bower install batchjs
 
 
 ##Examples
