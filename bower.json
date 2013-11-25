@@ -1,0 +1,11 @@
+{
+  "name": "batchjs",
+  "version": "0.1.0",
+  "main": "dist/batch.min.js",
+  "ignore": [
+    "**/.*",
+    ".grunt",
+    "node_modules",
+    "components"
+  ]
+}
