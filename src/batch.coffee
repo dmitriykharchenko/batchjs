@@ -51,9 +51,9 @@ window.batch = new () ->
 
   BatchBalancer:: =
 
-  ##### BatchBalancer::start(callback)
+  ##### BatchBalancer::next(callback)
   # Takes callback and balancing between sync or async call to callback function.
-    start: (callback) ->
+    next: (callback) ->
       call_date = +new Date()
 
       # brakes if time or stack limit exeeded
@@ -98,7 +98,7 @@ window.batch = new () ->
         if handler_result isnt undefined
           @result = handler_result
 
-        @balancer.start =>
+        @balancer.next =>
           @_call_complete_handlers()
 
 
@@ -109,7 +109,7 @@ window.batch = new () ->
     start: (data) ->
       if @_iteration
         if not @state.is_complete
-          @balancer.start @_iteration
+          @balancer.next @_iteration
         else
           @_call_complete_handlers()
       else 
@@ -148,12 +148,12 @@ window.batch = new () ->
                 @result = (if @is_array_data then [] else {}) unless @result
                 @result[next_index] = result
 
-              @balancer.start @_iteration
+              @balancer.next @_iteration
             else
               @state.is_complete = true
               @_call_complete_handlers()
 
-        @balancer.start @_iteration
+        @balancer.next @_iteration
       
 
     ##### IterationFlow::stop()

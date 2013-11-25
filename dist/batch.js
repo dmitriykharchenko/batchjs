@@ -34,7 +34,7 @@ window.batch = new function() {
     return this._limit = limit || balancer_defaults.block_limit;
   };
   BatchBalancer.prototype = {
-    start: function(callback) {
+    next: function(callback) {
       var call_date, is_block_limit_exceed, is_stack_overflow;
       call_date = +new Date();
       is_block_limit_exceed = this._limit < (call_date - this._start_time);
@@ -69,7 +69,7 @@ window.batch = new function() {
         if (handler_result !== void 0) {
           this.result = handler_result;
         }
-        return this.balancer.start(function() {
+        return this.balancer.next(function() {
           return _this._call_complete_handlers();
         });
       }
@@ -79,7 +79,7 @@ window.batch = new function() {
         _this = this;
       if (this._iteration) {
         if (!this.state.is_complete) {
-          return this.balancer.start(this._iteration);
+          return this.balancer.next(this._iteration);
         } else {
           return this._call_complete_handlers();
         }
@@ -111,14 +111,14 @@ window.batch = new function() {
                 }
                 _this.result[next_index] = result;
               }
-              return _this.balancer.start(_this._iteration);
+              return _this.balancer.next(_this._iteration);
             } else {
               _this.state.is_complete = true;
               return _this._call_complete_handlers();
             }
           };
         }
-        return this.balancer.start(this._iteration);
+        return this.balancer.next(this._iteration);
       }
     },
     stop: function() {
