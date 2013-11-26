@@ -407,14 +407,7 @@ it can be resumed later with IterationFlow::resume() method</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="function"><span class="title">Stream</span> = <span class="params">(data)</span> -&gt;</span>
-    <span class="property">@current_flow</span> = <span class="keyword">new</span> IterationFlow()
-    <span class="property">@current_flow</span>.start data <span class="keyword">or</span> []
-
-    <span class="property">@_balancer</span> = <span class="keyword">new</span> BatchBalancer
-    @
-
-  <span class="attribute">Stream</span>:: =</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="function"><span class="title">Stream</span> = <span class="params">(data)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -424,6 +417,29 @@ it can be resumed later with IterationFlow::resume() method</p>
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>@_last_flow is need to chain new one to it
+@current_flow is current working flow</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="property">@_last_flow</span> = <span class="keyword">new</span> IterationFlow()
+    <span class="property">@current_flow</span> = <span class="property">@_last_flow</span>
+    <span class="property">@_last_flow</span>.start data <span class="keyword">or</span> []
+
+    <span class="property">@_balancer</span> = <span class="keyword">new</span> BatchBalancer
+    @
+
+  <span class="attribute">Stream</span>:: =</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
               </div>
               <h4 id="stream-_push-data-">Stream::_push(data)</h4>
 <p>creates new iterations flow and chains it to previous one
@@ -435,29 +451,11 @@ it can be resumed later with IterationFlow::resume() method</p>
       new_flow = <span class="keyword">new</span> IterationFlow(data.iterator, <span class="property">@_balancer</span>)
       new_flow.on_complete data.complete
 
-      <span class="property">@current_flow</span>.on_complete <span class="function"><span class="params">(data, state)</span> -&gt;</span>
+      <span class="property">@_last_flow</span>.on_complete <span class="function"><span class="params">(data, state)</span> =&gt;</span>
+        <span class="property">@current_flow</span> = new_flow
         new_flow.start data
 
-      <span class="property">@current_flow</span> = new_flow
-      @</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-20">
-            <div class="annotation">
-              
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-20">&#182;</a>
-              </div>
-              <h4 id="stream-stop-">Stream::stop()</h4>
-<p>Stops current flow. It is mean that current flow will call all complete handlers 
-and next flow (if exist) also will start.</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>    <span class="attribute">stop</span>:<span class="function"> -&gt;</span>
-      <span class="property">@current_flow</span>.stop()
+      <span class="property">@_last_flow</span> = new_flow
       @</pre></div></div>
             
         </li>
@@ -557,21 +555,21 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-25">&#182;</a>
               </div>
-              <h4 id="stream-find-iterator-">Stream::find(iterator)</h4>
-<p>Finds first element in collection</p>
+              <h4 id="stream-select-iterator-">Stream::select(iterator)</h4>
+<p>Returns array of elements from collection, that pass a truth test in iterator function</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="attribute">find</span>: <span class="function"><span class="params">(iterator)</span> -&gt;</span>
-      found = <span class="literal">undefined</span>
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">select</span>: <span class="function"><span class="params">(iterator)</span> -&gt;</span>
+      selected_values = []
       <span class="property">@_push</span>
         <span class="attribute">iterator</span>: <span class="function"><span class="params">(value, index, flow)</span> -&gt;</span>
-          <span class="keyword">if</span> iterator(value, index, flow)
-            found = value
-            flow.stop()
+          <span class="keyword">if</span> iterator(value, index, flow) <span class="keyword">is</span> <span class="literal">true</span>
+            selected_values.push value
 
-        <span class="attribute">complete</span>: <span class="function"><span class="params">(state)</span> -&gt;</span>
-          found
+        <span class="attribute">complete</span>: <span class="function"><span class="params">(data, state)</span> -&gt;</span>
+          selected_values
+
       @</pre></div></div>
             
         </li>
@@ -583,13 +581,39 @@ Iterator for &#39;reduce()&#39; method accepts additional 3rd argument &#39;summ
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-26">&#182;</a>
               </div>
+              <h4 id="stream-find-iterator-">Stream::find(iterator)</h4>
+<p>Finds first element in collection</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="attribute">find</span>: <span class="function"><span class="params">(iterator)</span> -&gt;</span>
+      found = <span class="literal">undefined</span>
+      <span class="property">@_push</span>
+        <span class="attribute">iterator</span>: <span class="function"><span class="params">(value, index, flow)</span> -&gt;</span>
+          <span class="keyword">if</span> iterator(value, index, flow) <span class="keyword">is</span> <span class="literal">true</span>
+            found = value
+            flow.stop()
+
+        <span class="attribute">complete</span>: <span class="function"><span class="params">(state)</span> -&gt;</span>
+          found
+      @</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
               <h4 id="stream-next-handler-">Stream::next(handler)</h4>
 <p>Binds handler to complete of current flow</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>    <span class="attribute">next</span>: <span class="function"><span class="params">(handler)</span> -&gt;</span>
-      <span class="property">@current_flow</span>.on_complete <span class="function"><span class="params">(result, state)</span> -&gt;</span>
+      <span class="property">@_last_flow</span>.on_complete <span class="function"><span class="params">(result, state)</span> -&gt;</span>
         handler(result)
         <span class="keyword">return</span> <span class="literal">undefined</span>
       @
