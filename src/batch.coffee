@@ -193,8 +193,12 @@ window.batch = new () ->
   # Consumes data and iterator for it, chain it with previous iteration flow, or just start new flow, and return result to complete callbacks
 
   Stream = (data) ->
-    @current_flow = new IterationFlow()
-    @current_flow.start data or []
+    # @_last_flow is need to chain new one to it
+    # @current_flow is current working flow
+
+    @_last_flow = new IterationFlow()
+    @current_flow = @_last_flow
+    @_last_flow.start data or []
 
     @_balancer = new BatchBalancer
     @
@@ -209,18 +213,11 @@ window.batch = new () ->
       new_flow = new IterationFlow(data.iterator, @_balancer)
       new_flow.on_complete data.complete
 
-      @current_flow.on_complete (data, state) ->
+      @_last_flow.on_complete (data, state) =>
+        @current_flow = new_flow
         new_flow.start data
 
-      @current_flow = new_flow
-      @
-
-    ##### Stream::stop()
-    # Stops current flow. It is mean that current flow will call all complete handlers 
-    # and next flow (if exist) also will start.
-
-    stop: ->
-      @current_flow.stop()
+      @_last_flow = new_flow
       @
 
     ##### Stream::use(data)
@@ -289,7 +286,7 @@ window.batch = new () ->
     # Binds handler to complete of current flow
 
     next: (handler) ->
-      @current_flow.on_complete (result, state) ->
+      @_last_flow.on_complete (result, state) ->
         handler(result)
         return undefined
       @

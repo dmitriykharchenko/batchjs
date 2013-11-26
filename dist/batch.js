@@ -141,24 +141,23 @@ window.batch = new function() {
     }
   };
   Stream = function(data) {
-    this.current_flow = new IterationFlow();
-    this.current_flow.start(data || []);
+    this._last_flow = new IterationFlow();
+    this.current_flow = this._last_flow;
+    this._last_flow.start(data || []);
     this._balancer = new BatchBalancer;
     return this;
   };
   Stream.prototype = {
     _push: function(data) {
-      var new_flow;
+      var new_flow,
+        _this = this;
       new_flow = new IterationFlow(data.iterator, this._balancer);
       new_flow.on_complete(data.complete);
-      this.current_flow.on_complete(function(data, state) {
+      this._last_flow.on_complete(function(data, state) {
+        _this.current_flow = new_flow;
         return new_flow.start(data);
       });
-      this.current_flow = new_flow;
-      return this;
-    },
-    stop: function() {
-      this.current_flow.stop();
+      this._last_flow = new_flow;
       return this;
     },
     use: function(data) {
@@ -221,7 +220,7 @@ window.batch = new function() {
       return this;
     },
     next: function(handler) {
-      this.current_flow.on_complete(function(result, state) {
+      this._last_flow.on_complete(function(result, state) {
         handler(result);
         return void 0;
       });
