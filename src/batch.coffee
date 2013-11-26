@@ -266,6 +266,21 @@ window.batch = new () ->
           summary
       @
 
+    ##### Stream::select(iterator)
+    # Returns array of elements from collection, that pass a truth test in iterator function
+
+    select: (iterator) ->
+      selected_values = []
+      @_push
+        iterator: (value, index, flow) ->
+          if iterator(value, index, flow) is true
+            selected_values.push value
+
+        complete: (data, state) ->
+          selected_values
+
+      @
+
     ##### Stream::find(iterator)
     # Finds first element in collection
 
@@ -273,7 +288,7 @@ window.batch = new () ->
       found = undefined
       @_push
         iterator: (value, index, flow) ->
-          if iterator(value, index, flow)
+          if iterator(value, index, flow) is true
             found = value
             flow.stop()
 

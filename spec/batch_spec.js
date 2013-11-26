@@ -9,7 +9,7 @@ describe('batch spec', function(){
 
     it("should use specified data", function(){
       var results = null
-      
+
       runs(function() {
         worker.use([1,2,3,4,5,6,7]).map(function(item, index){
           return (item / 3) | 0; // divide by three and take floor
@@ -192,6 +192,26 @@ describe('batch spec', function(){
         expect(results).toEqual({ index : 546 });
       });
     });
+
+    it("should select all items with index field dividable by 43", function(){
+      var results = null;
+
+      runs(function() {
+        worker.select(function(item, index){
+          return (item.index % 43) === 0;
+        }).next(function(data){
+          results = data;
+        });
+      });
+
+      waitsFor(function(){
+        return results !== null;
+      });
+
+      runs(function() {
+        expect(results).toEqual(dividable_by_43_items_array);
+      });
+    });
   });
 
   describe("iterate trought array of data", function(){
@@ -310,6 +330,26 @@ describe('batch spec', function(){
 
       runs(function() {
         expect(results).toEqual({ index : 546 });
+      });
+    });
+
+    it("should select all items with index field dividable by 43", function(){
+      var results = null;
+
+      runs(function() {
+        worker.select(function(item, index){
+          return (item.index % 43) === 0;
+        }).next(function(data){
+          results = data;
+        });
+      });
+
+      waitsFor(function(){
+        return results !== null;
+      });
+
+      runs(function() {
+        expect(results).toEqual(dividable_by_43_items_array);
       });
     });
   })

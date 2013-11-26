@@ -203,12 +203,27 @@ window.batch = new function() {
       });
       return this;
     },
+    select: function(iterator) {
+      var selected_values;
+      selected_values = [];
+      this._push({
+        iterator: function(value, index, flow) {
+          if (iterator(value, index, flow) === true) {
+            return selected_values.push(value);
+          }
+        },
+        complete: function(data, state) {
+          return selected_values;
+        }
+      });
+      return this;
+    },
     find: function(iterator) {
       var found;
       found = void 0;
       this._push({
         iterator: function(value, index, flow) {
-          if (iterator(value, index, flow)) {
+          if (iterator(value, index, flow) === true) {
             found = value;
             return flow.stop();
           }
