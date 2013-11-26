@@ -148,7 +148,7 @@ window.batch = new function() {
     return this;
   };
   Stream.prototype = {
-    _push: function(data) {
+    _push_flow: function(data) {
       var new_flow,
         _this = this;
       new_flow = new IterationFlow(data.iterator, this._balancer);
@@ -161,7 +161,7 @@ window.batch = new function() {
       return this;
     },
     use: function(data) {
-      this._push({
+      this._push_flow({
         complete: function() {
           return data;
         }
@@ -170,7 +170,7 @@ window.batch = new function() {
     },
     each: function(iterator) {
       var _this = this;
-      this._push({
+      this._push_flow({
         iterator: function(value, index, flow) {
           var result;
           result = iterator(value, index, flow);
@@ -182,14 +182,14 @@ window.batch = new function() {
       return this;
     },
     map: function(transformator) {
-      return this._push({
+      return this._push_flow({
         iterator: transformator
       });
     },
     reduce: function(iterator, summary_initial) {
       var summary;
       summary = summary_initial;
-      this._push({
+      this._push_flow({
         iterator: function(value, index, flow) {
           var result;
           result = iterator(value, index, summary, flow);
@@ -206,7 +206,7 @@ window.batch = new function() {
     select: function(iterator) {
       var selected_values;
       selected_values = [];
-      this._push({
+      this._push_flow({
         iterator: function(value, index, flow) {
           if (iterator(value, index, flow) === true) {
             return selected_values.push(value);
@@ -221,7 +221,7 @@ window.batch = new function() {
     find: function(iterator) {
       var found;
       found = void 0;
-      this._push({
+      this._push_flow({
         iterator: function(value, index, flow) {
           if (iterator(value, index, flow) === true) {
             found = value;

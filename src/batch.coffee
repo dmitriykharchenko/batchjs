@@ -205,11 +205,11 @@ window.batch = new () ->
 
   Stream:: =
 
-    ##### Stream::_push(data)
+    ##### Stream::_push_flow(data)
     # creates new iterations flow and chains it to previous one
     # 'data' should contain iterator function or/and complete handler.
 
-    _push: (data) ->
+    _push_flow: (data) ->
       new_flow = new IterationFlow(data.iterator, @_balancer)
       new_flow.on_complete data.complete
 
@@ -224,7 +224,7 @@ window.batch = new () ->
     # Set data for any next iterations, any previous data will be thrown away.
 
     use: (data) ->
-      @_push complete: () ->
+      @_push_flow complete: () ->
         data
       @
 
@@ -234,7 +234,7 @@ window.batch = new () ->
     # stops if iterator return false
 
     each: (iterator) ->
-      @_push iterator: (value, index, flow) =>
+      @_push_flow iterator: (value, index, flow) =>
         result = iterator(value, index, flow)
         flow.stop() if result is false
       @
@@ -244,7 +244,7 @@ window.batch = new () ->
     # by mapping elements from source through a 'transformator' function
 
     map: (transformator) ->
-      @_push
+      @_push_flow
         iterator: transformator
 
 
@@ -256,7 +256,7 @@ window.batch = new () ->
 
     reduce: (iterator, summary_initial) ->
       summary = summary_initial
-      @_push
+      @_push_flow
         iterator: (value, index, flow) ->
           result = iterator(value, index, summary, flow)
           if result isnt undefined
@@ -271,7 +271,7 @@ window.batch = new () ->
 
     select: (iterator) ->
       selected_values = []
-      @_push
+      @_push_flow
         iterator: (value, index, flow) ->
           if iterator(value, index, flow) is true
             selected_values.push value
@@ -286,7 +286,7 @@ window.batch = new () ->
 
     find: (iterator) ->
       found = undefined
-      @_push
+      @_push_flow
         iterator: (value, index, flow) ->
           if iterator(value, index, flow) is true
             found = value
