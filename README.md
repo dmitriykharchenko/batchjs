@@ -8,7 +8,7 @@ It is asynchronous, chainable, and no blocked UI anymore.
 
 ##Read more about it
 
-Check out [docs](https://github.com/aki-russia/batchjs/tree/master/docs).
+`$ docco src/` or just read annotated source code.
 
 
 ##Install
